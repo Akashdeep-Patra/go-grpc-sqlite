@@ -58,6 +58,51 @@ func LoggingInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
+// LoggingStreamInterceptor returns a gRPC stream server interceptor for logging requests
+func LoggingStreamInterceptor() grpc.StreamServerInterceptor {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		startTime := time.Now()
+		
+		// Extract request metadata
+		ctx := ss.Context()
+		md, _ := metadata.FromIncomingContext(ctx)
+		requestID := extractRequestID(md)
+		
+		// Create a logger for this request
+		logFields := []zap.Field{
+			zap.String("method", info.FullMethod),
+			zap.String("request_id", requestID),
+			zap.Bool("is_client_stream", info.IsClientStream),
+			zap.Bool("is_server_stream", info.IsServerStream),
+		}
+		
+		logger.Info("Received gRPC stream request", logFields...)
+		
+		// Call the handler
+		err := handler(srv, ss)
+		
+		// Log the response
+		duration := time.Since(startTime)
+		responseFields := append(logFields,
+			zap.Duration("duration", duration),
+			zap.Int64("duration_ms", duration.Milliseconds()),
+		)
+		
+		if err != nil {
+			st, _ := status.FromError(err)
+			responseFields = append(responseFields,
+				zap.String("error", err.Error()),
+				zap.String("error_code", st.Code().String()),
+			)
+			logger.Error("gRPC stream request error", responseFields...)
+		} else {
+			logger.Info("gRPC stream request completed", responseFields...)
+		}
+		
+		return err
+	}
+}
+
 // AuthInterceptor returns a gRPC unary server interceptor for authentication
 func AuthInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -89,6 +134,38 @@ func AuthInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
+// AuthStreamInterceptor returns a gRPC stream server interceptor for authentication
+func AuthStreamInterceptor() grpc.StreamServerInterceptor {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		// Skip authentication for specific methods
+		if isPublicMethod(info.FullMethod) {
+			return handler(srv, ss)
+		}
+		
+		// Extract token from metadata
+		ctx := ss.Context()
+		md, ok := metadata.FromIncomingContext(ctx)
+		if !ok {
+			return status.Error(codes.Unauthenticated, "missing metadata")
+		}
+		
+		authHeader, ok := md["authorization"]
+		if !ok || len(authHeader) == 0 {
+			return status.Error(codes.Unauthenticated, "missing authorization header")
+		}
+		
+		token := authHeader[0]
+		
+		// Validate token (implement your own validation logic)
+		if !validateToken(token) {
+			return status.Error(codes.Unauthenticated, "invalid token")
+		}
+		
+		// Call the handler
+		return handler(srv, ss)
+	}
+}
+
 // RecoveryInterceptor returns a gRPC unary server interceptor for panic recovery
 func RecoveryInterceptor() grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (resp interface{}, err error) {
@@ -106,6 +183,23 @@ func RecoveryInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
+// RecoveryStreamInterceptor returns a gRPC stream server interceptor for panic recovery
+func RecoveryStreamInterceptor() grpc.StreamServerInterceptor {
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) (err error) {
+		defer func() {
+			if r := recover(); r != nil {
+				logger.Error("Recovered from stream panic",
+					zap.String("method", info.FullMethod),
+					zap.Any("panic", r),
+				)
+				err = status.Error(codes.Internal, "Internal server error")
+			}
+		}()
+		
+		return handler(srv, ss)
+	}
+}
+
 // RateLimitInterceptor returns a gRPC unary server interceptor for rate limiting
 func RateLimitInterceptor() grpc.UnaryServerInterceptor {
 	// In a production system, you would use a proper rate limiter like token bucket
@@ -116,6 +210,19 @@ func RateLimitInterceptor() grpc.UnaryServerInterceptor {
 		}
 		
 		return handler(ctx, req)
+	}
+}
+
+// RateLimitStreamInterceptor returns a gRPC stream server interceptor for rate limiting
+func RateLimitStreamInterceptor() grpc.StreamServerInterceptor {
+	// In a production system, you would use a proper rate limiter like token bucket
+	return func(srv interface{}, ss grpc.ServerStream, info *grpc.StreamServerInfo, handler grpc.StreamHandler) error {
+		// Simple rate limiting logic (this is just a placeholder)
+		if isRateLimited(info.FullMethod) {
+			return status.Error(codes.ResourceExhausted, "Rate limit exceeded")
+		}
+		
+		return handler(srv, ss)
 	}
 }
 

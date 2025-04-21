@@ -1,4 +1,4 @@
-module test-project-grpc
+module github.com/Akashdeep-Patra/go-grpc-sqlite
 
 go 1.23.4
 

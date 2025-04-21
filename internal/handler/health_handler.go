@@ -41,13 +41,13 @@ func (h *HealthHandler) Check(ctx context.Context, req *grpc_health_v1.HealthChe
 		}, nil
 	}
 
-	status, ok := h.statusMap[service]
+	svcStatus, ok := h.statusMap[service]
 	if !ok {
 		return nil, status.Error(codes.NotFound, "service not found")
 	}
 
 	return &grpc_health_v1.HealthCheckResponse{
-		Status: status,
+		Status: svcStatus,
 	}, nil
 }
 
@@ -68,13 +68,13 @@ func (h *HealthHandler) Watch(req *grpc_health_v1.HealthCheckRequest, stream grp
 		})
 	}
 
-	status, ok := h.statusMap[service]
+	svcStatus, ok := h.statusMap[service]
 	if !ok {
-		status = grpc_health_v1.HealthCheckResponse_SERVICE_UNKNOWN
+		svcStatus = grpc_health_v1.HealthCheckResponse_SERVICE_UNKNOWN
 	}
 
 	return stream.Send(&grpc_health_v1.HealthCheckResponse{
-		Status: status,
+		Status: svcStatus,
 	})
 }
 

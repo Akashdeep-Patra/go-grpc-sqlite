@@ -3,11 +3,11 @@ package handler
 import (
 	"context"
 
-	"test-project-grpc/internal/app"
-	"test-project-grpc/internal/domain"
-	"test-project-grpc/internal/repo/sqlite"
-	pb "test-project-grpc/user"
-	"test-project-grpc/pkg/db"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/internal/app"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/internal/domain"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/internal/repo/sqlite"
+	pb "github.com/Akashdeep-Patra/go-grpc-sqlite/user"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/pkg/db"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

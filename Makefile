@@ -3,11 +3,11 @@
 # Generate protobuf files
 proto:
 	./scripts/download_protos.sh
-	mkdir -p api/swagger
+	mkdir -p api/swagger gen/go
 	protoc --proto_path=. \
 		--proto_path=./third_party/proto \
-		--go_out=. --go-grpc_out=. \
-		--grpc-gateway_out=logtostderr=true:. \
+		--go_out=./gen/go --go-grpc_out=./gen/go \
+		--grpc-gateway_out=logtostderr=true:./gen/go \
 		--openapiv2_out=logtostderr=true:./api/swagger \
 		api/*.proto
 
@@ -84,4 +84,4 @@ swagger-ui:
 
 # Clean build artifacts
 clean:
-	rm -rf bin/ 
+	rm -rf bin/ gen/ 

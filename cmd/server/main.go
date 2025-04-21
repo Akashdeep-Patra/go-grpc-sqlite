@@ -9,19 +9,18 @@ import (
 	"syscall"
 	"time"
 
-	grpcmiddleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
 
-	pb "test-project-grpc/user"
-	"test-project-grpc/internal/handler"
-	"test-project-grpc/pkg/config"
-	"test-project-grpc/pkg/logger"
-	"test-project-grpc/pkg/metrics"
-	"test-project-grpc/pkg/middleware"
+	pb "github.com/Akashdeep-Patra/go-grpc-sqlite/user"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/internal/handler"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/pkg/config"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/pkg/logger"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/pkg/metrics"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/pkg/middleware"
 )
 
 func main() {
@@ -58,13 +57,20 @@ func main() {
 			MinTime:             time.Second * 5,
 			PermitWithoutStream: true,
 		}),
-		grpc.UnaryInterceptor(grpcmiddleware.ChainUnaryServer(
+		grpc.ChainUnaryInterceptor(
 			middleware.RecoveryInterceptor(),
 			middleware.LoggingInterceptor(),
 			// Uncomment when you have authentication set up
 			// middleware.AuthInterceptor(),
 			middleware.RateLimitInterceptor(),
-		)),
+		),
+		grpc.ChainStreamInterceptor(
+			middleware.RecoveryStreamInterceptor(),
+			middleware.LoggingStreamInterceptor(),
+			// Uncomment when you have authentication set up
+			// middleware.AuthStreamInterceptor(),
+			middleware.RateLimitStreamInterceptor(),
+		),
 	)
 
 	// Create TCP listener

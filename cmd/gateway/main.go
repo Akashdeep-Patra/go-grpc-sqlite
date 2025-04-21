@@ -17,9 +17,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
-	pb "test-project-grpc/test-project-grpc/user"
-	"test-project-grpc/pkg/config"
-	"test-project-grpc/pkg/logger"
+	pb "github.com/Akashdeep-Patra/go-grpc-sqlite/gen/go/github.com/Akashdeep-Patra/go-grpc-sqlite/user"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/pkg/config"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/pkg/logger"
 )
 
 //go:embed swagger-ui
@@ -58,7 +58,6 @@ func main() {
 		ctx,
 		*grpcServerEndpoint,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithBlock(),
 	)
 	if err != nil {
 		logger.Fatal("Failed to dial gRPC server", zap.Error(err))

@@ -1,31 +1,84 @@
 package main
 
 import (
-	"log"
+	"context"
+	"fmt"
 	"net"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
-	"test-project-grpc/internal/handler"
-	pb "test-project-grpc/user"
+	grpcmiddleware "github.com/grpc-ecosystem/go-grpc-middleware/v2"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/health/grpc_health_v1"
+	"google.golang.org/grpc/keepalive"
 	"google.golang.org/grpc/reflection"
+
+	pb "test-project-grpc/user"
+	"test-project-grpc/internal/handler"
+	"test-project-grpc/pkg/config"
+	"test-project-grpc/pkg/logger"
+	"test-project-grpc/pkg/metrics"
+	"test-project-grpc/pkg/middleware"
 )
 
 func main() {
-	port := os.Getenv("SERVER_PORT")
-	if port == "" {
-		port = "50051"
-	}
-
-	lis, err := net.Listen("tcp", ":"+port)
+	// Load configuration
+	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+		fmt.Printf("Failed to load configuration: %v\n", err)
+		os.Exit(1)
 	}
 
-	grpcServer := grpc.NewServer()
-	
+	// Initialize logger
+	logger.Init(cfg.App.Environment)
+	defer logger.Sync()
+
+	// Log basic information
+	logger.Info("Starting service",
+		zap.String("app", cfg.App.Name),
+		zap.String("environment", cfg.App.Environment),
+	)
+
+	// Start Prometheus metrics server
+	metrics.StartMetricsServer(9100)
+
+	// Create gRPC server with interceptors
+	grpcServer := grpc.NewServer(
+		grpc.KeepaliveParams(keepalive.ServerParameters{
+			MaxConnectionIdle:     time.Duration(cfg.Server.IdleTimeout) * time.Second,
+			MaxConnectionAge:      time.Hour,
+			MaxConnectionAgeGrace: time.Minute * 5,
+			Time:                  time.Minute,
+			Timeout:               time.Second * 20,
+		}),
+		grpc.KeepaliveEnforcementPolicy(keepalive.EnforcementPolicy{
+			MinTime:             time.Second * 5,
+			PermitWithoutStream: true,
+		}),
+		grpc.UnaryInterceptor(grpcmiddleware.ChainUnaryServer(
+			middleware.RecoveryInterceptor(),
+			middleware.LoggingInterceptor(),
+			// Uncomment when you have authentication set up
+			// middleware.AuthInterceptor(),
+			middleware.RateLimitInterceptor(),
+		)),
+	)
+
+	// Create TCP listener
+	port := cfg.Server.Port
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	if err != nil {
+		logger.Fatal("Failed to listen", zap.Error(err))
+	}
+
+	// Create health check service
+	healthHandler := handler.NewHealthHandler()
+	healthHandler.SetServingStatus("", grpc_health_v1.HealthCheckResponse_SERVING)
+	grpc_health_v1.RegisterHealthServer(grpcServer, healthHandler)
+
 	// Register service handlers
 	userHandler := handler.NewUserHandler()
 	pb.RegisterUserServiceServer(grpcServer, userHandler)
@@ -33,11 +86,14 @@ func main() {
 	// Enable reflection for tools like grpcurl
 	reflection.Register(grpcServer)
 
+	// Set service as serving
+	healthHandler.SetServingStatus(cfg.App.Name, grpc_health_v1.HealthCheckResponse_SERVING)
+
 	// Start server in a goroutine
 	go func() {
-		log.Printf("Server listening on port %s", port)
+		logger.Info("Server listening", zap.Int("port", port))
 		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("failed to serve: %v", err)
+			logger.Fatal("Failed to serve", zap.Error(err))
 		}
 	}()
 
@@ -46,13 +102,29 @@ func main() {
 	signal.Notify(sigCh, os.Interrupt, syscall.SIGTERM)
 	<-sigCh
 
-	log.Println("Shutting down server...")
+	logger.Info("Shutting down server...")
+	
+	// Set service to NOT_SERVING during shutdown
+	healthHandler.SetServingStatus(cfg.App.Name, grpc_health_v1.HealthCheckResponse_NOT_SERVING)
+	
+	// Stop accepting new requests
+	grpcServer.GracefulStop()
 	
 	// Close database connection
 	if err := userHandler.Close(); err != nil {
-		log.Printf("Error closing DB connection: %v", err)
+		logger.Error("Error closing DB connection", zap.Error(err))
 	}
 	
-	grpcServer.GracefulStop()
-	log.Println("Server stopped")
+	// Allow some time for existing requests to complete
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	
+	select {
+	case <-ctx.Done():
+		logger.Info("Timeout waiting for connections to close, forcing shutdown")
+	case <-time.After(10 * time.Millisecond):
+		logger.Info("All connections closed successfully")
+	}
+	
+	logger.Info("Server stopped")
 } 

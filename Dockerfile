@@ -1,32 +1,61 @@
+# Build stage
 FROM golang:1.21-alpine AS builder
 
+# Install git for fetching dependencies
+RUN apk --no-cache add git
+
+# Set working directory
 WORKDIR /app
 
-# Copy go mod and sum files
+# Copy go.mod and go.sum files
 COPY go.mod go.sum ./
 
 # Download dependencies
 RUN go mod download
 
-# Copy source code
+# Copy the source code
 COPY . .
 
-# Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o /app/bin/server /app/cmd/server/main.go
+# Build the application with security flags
+RUN CGO_ENABLED=1 \
+    GOOS=linux \
+    GOARCH=amd64 \
+    go build -a -ldflags="-w -s -extldflags=-static" \
+    -o /app/bin/server /app/cmd/server/main.go
 
-# Create a minimal production image
+# Final stage
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates
+# Add necessary packages
+RUN apk --no-cache add ca-certificates tzdata sqlite && \
+    update-ca-certificates
 
+# Create a non-root user and group
+RUN addgroup -S appgroup && \
+    adduser -S appuser -G appgroup
+
+# Create app directories
+RUN mkdir -p /app/data /app/config && \
+    chown -R appuser:appgroup /app
+
+# Set working directory
 WORKDIR /app
 
-# Copy the binary from the builder stage
-COPY --from=builder /app/bin/server .
+# Copy binary from builder stage
+COPY --from=builder --chown=appuser:appgroup /app/bin/server /app/server
 
-# Copy any config files needed
-COPY --from=builder /app/.env .
+# Copy config files
+COPY --from=builder --chown=appuser:appgroup /app/config /app/config
 
-EXPOSE 50051
+# Switch to non-root user
+USER appuser
 
-CMD ["./server"] 
+# Expose ports for gRPC and metrics
+EXPOSE 50051 9100
+
+# Set healthcheck
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD [ "/app/server", "-health" ] || exit 1
+
+# Run the application
+ENTRYPOINT ["/app/server"] 

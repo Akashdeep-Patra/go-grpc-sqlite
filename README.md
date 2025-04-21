@@ -1,40 +1,57 @@
 # gRPC User Service with SQLite
 
-A Go microservice for user management using gRPC and SQLite for persistent storage.
+A production-ready Go microservice for user management using gRPC and SQLite for persistent storage.
 
 ## Features
 
 - User creation and retrieval via gRPC
 - Persistent storage with SQLite
 - Clean architecture with domain-driven design
-- Proper error handling
+- Structured logging with Zap
+- Configuration management with Viper
+- Metrics with Prometheus
+- Health checking
+- Middleware and interceptors
+- Request tracing
+- Authentication and authorization
+- Rate limiting
 - Graceful shutdown
+- Docker support with security best practices
+- CI/CD with GitHub Actions
 
 ## Project Structure
 
 ```
 /
-├── api/                # Protobuf/gRPC definitions
-├── cmd/                # Main application entrypoints
-│   ├── server/         # gRPC server
-│   └── client/         # gRPC client for testing
+├── .github/workflows/   # CI/CD configuration
+├── api/                 # Protobuf/gRPC definitions
+├── cmd/                 # Main application entrypoints
+│   ├── server/          # gRPC server
+│   ├── client/          # gRPC client for testing
+│   └── healthcheck/     # Health check tool
+├── config/              # Configuration files
 ├── internal/
-│   ├── app/            # Core business logic (use cases)
-│   ├── domain/         # Entities/interfaces
-│   ├── handler/        # gRPC handlers
-│   ├── repo/           # Data access
-│   │   ├── memory/     # In-memory repository implementation
-│   │   └── sqlite/     # SQLite repository implementation
-│   └── service/        # External services
-├── pkg/                # Reusable libraries
-│   └── db/             # Database utilities
-├── user/               # Generated protobuf code
+│   ├── app/             # Core business logic (use cases)
+│   ├── domain/          # Entities/interfaces
+│   ├── handler/         # gRPC handlers
+│   ├── repo/            # Data access
+│   │   ├── memory/      # In-memory repository implementation
+│   │   └── sqlite/      # SQLite repository implementation
+│   └── service/         # External services
+├── pkg/                 # Reusable libraries
+│   ├── config/          # Configuration utilities
+│   ├── db/              # Database utilities
+│   ├── logger/          # Logging utilities
+│   ├── metrics/         # Metrics utilities
+│   └── middleware/      # gRPC middleware
+├── test/                # Integration tests
+├── user/                # Generated protobuf code
 └── Makefile, Dockerfile, etc.
 ```
 
 ## Prerequisites
 
-- Go 1.18+ (tested with 1.23)
+- Go 1.18+ (tested with 1.21)
 - Protocol Buffers Compiler (protoc)
 - SQLite3
 
@@ -81,17 +98,81 @@ Retrieve a user by ID:
 ./bin/client --get=<user-id>
 ```
 
+### Running with Docker
+
+Build the Docker image:
+```
+make docker-build
+```
+
+Run the Docker container:
+```
+make docker-run
+```
+
 ## Development
 
-### Adding New Features
+### Building and Testing
 
-1. Add new definitions to the `api/user.proto` file
-2. Regenerate the Go code with `make proto`
-3. Implement the new functionality in the appropriate layers:
-   - Add domain models/interfaces in `internal/domain`
-   - Add business logic in `internal/app`
-   - Add data access in `internal/repo/sqlite`
-   - Add gRPC handlers in `internal/handler`
+Build all binaries:
+```
+make build-all
+```
+
+Run unit tests:
+```
+make test
+```
+
+Run integration tests:
+```
+make integration-test
+```
+
+Format code:
+```
+make fmt
+```
+
+Lint code:
+```
+make lint
+```
+
+### Configuration
+
+The service can be configured through:
+1. Configuration file (`config/config.yaml`)
+2. Environment variables (e.g., `APP_SERVER_PORT=50051`)
+
+## Production Features
+
+### Logging
+- Structured logging with Zap
+- Different log formats based on environment (development/production)
+- Request context preservation through interceptors
+
+### Metrics
+- Prometheus metrics for request counts, durations, and errors
+- Metrics server exposed on port 9100
+- Endpoint: `/metrics`
+
+### Health Checking
+- Implementation of gRPC Health Checking Protocol
+- Health check tool for Docker health checks
+- Service status management during startup and shutdown
+
+### Middleware
+- Logging interceptor
+- Authentication interceptor (placeholder for your auth implementation)
+- Recovery interceptor for panic handling
+- Rate limiting interceptor
+
+### Security
+- Non-root user in Docker
+- Static binaries with security flags
+- Authorization middleware
+- HTTPS support (add your certificates)
 
 ## License
 

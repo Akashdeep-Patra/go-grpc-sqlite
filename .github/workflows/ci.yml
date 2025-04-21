@@ -1,0 +1,118 @@
+name: Go gRPC Service CI/CD
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Install golangci-lint
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.59.0
+      
+      - name: Verify dependencies
+        run: go mod verify
+        
+      - name: Run golangci-lint
+        run: $(go env GOPATH)/bin/golangci-lint run
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      
+      - name: Install dependencies
+        run: go mod download
+      
+      - name: Run tests
+        run: go test -v ./... -coverprofile=coverage.txt -covermode=atomic
+      
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.txt
+          flags: unittests
+          fail_ci_if_error: false
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+      
+      - name: Install dependencies
+        run: go mod download
+      
+      - name: Set up Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: '25.x'
+      
+      - name: Install protoc plugins
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+      
+      - name: Generate protobuf files
+        run: make proto
+      
+      - name: Build all binaries
+        run: make build-all
+      
+      - name: Build Docker image
+        run: docker build -t go-grpc-sqlite:${{ github.sha }} .
+      
+      - name: Archive binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: bin/
+
+  # This job would normally deploy to your server or container registry
+  # Uncomment and customize for your deployment needs
+  # deploy:
+  #   name: Deploy
+  #   runs-on: ubuntu-latest
+  #   needs: [lint, test, build]
+  #   if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     
+  #     - name: Set up Docker Buildx
+  #       uses: docker/setup-buildx-action@v3
+  #     
+  #     - name: Login to Container Registry
+  #       uses: docker/login-action@v3
+  #       with:
+  #         registry: your-registry.io
+  #         username: ${{ secrets.REGISTRY_USERNAME }}
+  #         password: ${{ secrets.REGISTRY_PASSWORD }}
+  #     
+  #     - name: Build and push
+  #       uses: docker/build-push-action@v5
+  #       with:
+  #         push: true
+  #         tags: your-registry.io/go-grpc-sqlite:${{ github.sha }},your-registry.io/go-grpc-sqlite:latest 

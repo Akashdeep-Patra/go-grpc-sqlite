@@ -1,0 +1,14 @@
+app:
+  name: go-grpc-user-service
+  environment: development
+  log_level: info
+
+server:
+  port: 50051
+  host: 0.0.0.0
+  read_timeout: 5
+  write_timeout: 10
+  idle_timeout: 15
+
+database:
+  sqlite_db_path: ./data/users.db 

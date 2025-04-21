@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"test-project-grpc/internal/domain"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/internal/domain"
 	"github.com/google/uuid"
 )
 

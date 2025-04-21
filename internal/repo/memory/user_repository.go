@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 
-	"test-project-grpc/internal/domain"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/internal/domain"
 )
 
 // InMemoryUserRepository is an in-memory implementation of the UserRepository interface

@@ -9,7 +9,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.uber.org/zap"
 	
-	"test-project-grpc/pkg/logger"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/pkg/logger"
 )
 
 var (

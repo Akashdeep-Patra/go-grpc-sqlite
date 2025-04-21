@@ -11,7 +11,7 @@ import (
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 
-	"test-project-grpc/pkg/logger"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/pkg/logger"
 )
 
 // LoggingInterceptor returns a gRPC unary server interceptor for logging requests

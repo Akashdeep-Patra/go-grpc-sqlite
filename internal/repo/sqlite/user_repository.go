@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"time"
 
-	"test-project-grpc/internal/domain"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/internal/domain"
 	_ "github.com/mattn/go-sqlite3"
 )
 

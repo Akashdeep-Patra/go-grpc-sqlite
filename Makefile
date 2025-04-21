@@ -1,4 +1,4 @@
-.PHONY: proto build build-client build-healthcheck build-gateway build-all run-server run-gateway test clean docker-build docker-run lint docs swagger-ui
+.PHONY: proto build build-client build-healthcheck build-gateway build-all run-server run-gateway test integration-test clean docker-build docker-run lint docs swagger-ui fmt ci-local ci-local-lint ci-local-test ci-local-build ci-local-docker ci-local-clean ci-local-help
 
 # Generate protobuf files
 proto:
@@ -84,4 +84,32 @@ swagger-ui:
 
 # Clean build artifacts
 clean:
-	rm -rf bin/ gen/ 
+	rm -rf bin/ gen/
+
+# Run all GitHub Actions locally
+ci-local:
+	./.github/actions-runner/run-actions.sh
+
+# Run linting job from GitHub Actions locally
+ci-local-lint:
+	./.github/actions-runner/run-actions.sh lint
+
+# Run test job from GitHub Actions locally
+ci-local-test:
+	./.github/actions-runner/run-actions.sh test
+
+# Run build job from GitHub Actions locally
+ci-local-build:
+	./.github/actions-runner/run-actions.sh build
+
+# Run Docker build job from GitHub Actions locally
+ci-local-docker:
+	./.github/actions-runner/run-actions.sh docker-build
+
+# Clean GitHub Actions local runner resources
+ci-local-clean:
+	./.github/actions-runner/run-actions.sh clean
+
+# Show help for GitHub Actions local runner
+ci-local-help:
+	./.github/actions-runner/run-actions.sh help 

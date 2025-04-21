@@ -1,0 +1,84 @@
+services:
+  # Service for running linting job
+  lint:
+    image: golang:1.23-alpine
+    working_dir: /workspace
+    volumes:
+      - ../../:/workspace
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    command: >
+      sh -c "
+        echo 'Running go mod verify...' &&
+        go mod verify &&
+        echo 'Running go vet...' &&
+        go vet ./... &&
+        echo 'Linting completed successfully'
+      "
+
+  # Service for running tests job
+  test:
+    image: golang:1.23-alpine
+    working_dir: /workspace
+    volumes:
+      - ../../:/workspace
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    command: >
+      sh -c "
+        apk add --no-cache git curl protobuf protobuf-dev gcc musl-dev &&
+        go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.31.0 &&
+        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.3.0 &&
+        go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.16.0 &&
+        go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.16.0 &&
+        chmod +x ./scripts/download_protos.sh &&
+        ./scripts/download_protos.sh &&
+        make proto &&
+        go test -v ./... -coverprofile=coverage.txt -covermode=atomic
+      "
+
+  # Service for running build job
+  build:
+    image: golang:1.23-alpine
+    working_dir: /workspace
+    volumes:
+      - ../../:/workspace
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    command: >
+      sh -c "
+        apk add --no-cache git curl protobuf protobuf-dev gcc musl-dev &&
+        go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.31.0 &&
+        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.3.0 &&
+        go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.16.0 &&
+        go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.16.0 &&
+        chmod +x ./scripts/download_protos.sh &&
+        chmod +x ./scripts/download_swagger_ui.sh &&
+        ./scripts/download_protos.sh &&
+        ./scripts/download_swagger_ui.sh &&
+        make proto &&
+        make build-all
+      "
+
+  # Service for running the full Dockerfile build
+  docker-build:
+    image: docker:20.10
+    volumes:
+      - ../../:/workspace
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /workspace
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    command: >
+      sh -c "
+        docker build -t go-grpc-sqlite:test . && 
+        echo 'Docker build successful!'
+      " 

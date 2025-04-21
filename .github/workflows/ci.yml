@@ -1,5 +1,9 @@
 name: Go gRPC Service CI/CD
 
+# Note: You can test this workflow locally using Docker Compose.
+# Run 'make ci-local' to execute all CI jobs locally.
+# For more details, see the .github/actions-runner directory.
+
 on:
   push:
     branches: [ master, main ]
@@ -17,6 +21,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
+          cache: true
 
       - name: Install golangci-lint
         run: |
@@ -38,30 +43,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
-      
-      - name: Install dependencies
-        run: go mod download
-      
-      - name: Run tests
-        run: go test -v ./... -coverprofile=coverage.txt -covermode=atomic
-      
-      - name: Upload coverage report
-        uses: codecov/codecov-action@v4
-        with:
-          file: ./coverage.txt
-          flags: unittests
-          fail_ci_if_error: false
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: '1.21'
+          cache: true
       
       - name: Install dependencies
         run: go mod download
@@ -75,6 +57,59 @@ jobs:
         run: |
           go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
           go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
+          go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
+      
+      - name: Run download scripts and generate proto
+        run: |
+          chmod +x ./scripts/download_protos.sh
+          ./scripts/download_protos.sh
+          make proto
+      
+      - name: Run tests
+        run: go test -v ./... -coverprofile=coverage.txt -covermode=atomic
+      
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.txt
+          flags: unittests
+          fail_ci_if_error: false
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+          cache: true
+      
+      - name: Install dependencies
+        run: go mod download
+      
+      - name: Set up Protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: '25.x'
+      
+      - name: Install protoc plugins
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+          go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
+          go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
+      
+      - name: Run download scripts
+        run: |
+          chmod +x ./scripts/download_protos.sh
+          chmod +x ./scripts/download_swagger_ui.sh
+          ./scripts/download_protos.sh
+          ./scripts/download_swagger_ui.sh
       
       - name: Generate protobuf files
         run: make proto

@@ -9,7 +9,7 @@ import (
 	"google.golang.org/grpc/health/grpc_health_v1"
 	"google.golang.org/grpc/status"
 
-	"test-project-grpc/pkg/logger"
+	"github.com/Akashdeep-Patra/go-grpc-sqlite/pkg/logger"
 )
 
 // HealthHandler implements the gRPC Health Checking Protocol

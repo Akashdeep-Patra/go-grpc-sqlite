@@ -180,6 +180,33 @@ View API documentation with Swagger UI:
 make swagger-ui
 ```
 
+### Testing GitHub Actions Locally
+
+You can test GitHub Actions workflow locally before pushing to GitHub:
+
+Run all CI jobs locally:
+```
+make ci-local
+```
+
+Run specific CI jobs:
+```
+make ci-local-lint    # Run linting job
+make ci-local-test    # Run tests job
+make ci-local-build   # Run build job
+make ci-local-docker  # Run Docker build job
+```
+
+Clean up local CI resources:
+```
+make ci-local-clean
+```
+
+Show help for local CI:
+```
+make ci-local-help
+```
+
 ### Configuration
 
 The service can be configured through:

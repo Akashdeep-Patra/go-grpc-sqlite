@@ -6,7 +6,7 @@ import (
 	"log"
 	"time"
 
-	pb "test-project-grpc/user"
+	pb "github.com/Akashdeep-Patra/go-grpc-sqlite/gen/go/github.com/Akashdeep-Patra/go-grpc-sqlite/user"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

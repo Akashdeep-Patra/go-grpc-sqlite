@@ -1,8 +1,15 @@
-.PHONY: proto build build-client build-healthcheck build-all run-server test clean docker-build docker-run lint
+.PHONY: proto build build-client build-healthcheck build-gateway build-all run-server run-gateway test clean docker-build docker-run lint docs swagger-ui
 
 # Generate protobuf files
 proto:
-	protoc --go_out=. --go-grpc_out=. api/*.proto
+	./scripts/download_protos.sh
+	mkdir -p api/swagger
+	protoc --proto_path=. \
+		--proto_path=./third_party/proto \
+		--go_out=. --go-grpc_out=. \
+		--grpc-gateway_out=logtostderr=true:. \
+		--openapiv2_out=logtostderr=true:./api/swagger \
+		api/*.proto
 
 # Build the server
 build:
@@ -19,12 +26,22 @@ build-healthcheck:
 	mkdir -p bin
 	go build -o bin/healthcheck cmd/healthcheck/main.go
 
+# Build the API gateway
+build-gateway:
+	mkdir -p bin
+	./scripts/download_swagger_ui.sh
+	go build -o bin/gateway cmd/gateway/main.go
+
 # Build all binaries
-build-all: build build-client build-healthcheck
+build-all: build build-client build-healthcheck build-gateway
 
 # Run the server
 run-server:
 	./bin/server
+
+# Run the gateway server
+run-gateway:
+	./bin/gateway
 
 # Run tests
 test:
@@ -49,7 +66,21 @@ docker-build:
 
 # Run Docker container
 docker-run:
-	docker run -p 50051:50051 -p 9100:9100 --name go-grpc-sqlite go-grpc-sqlite:latest
+	docker run -p 50051:50051 -p 9100:9100 -p 8080:8080 --name go-grpc-sqlite go-grpc-sqlite:latest
+
+# Generate OpenAPI documentation
+docs:
+	./scripts/download_protos.sh
+	mkdir -p api/swagger
+	protoc --proto_path=. \
+		--proto_path=./third_party/proto \
+		--openapiv2_out=logtostderr=true:./api/swagger \
+		api/*.proto
+
+# Run Swagger UI for API documentation
+swagger-ui:
+	@echo "Access Swagger UI at http://localhost:8080/swagger/"
+	./bin/gateway
 
 # Clean build artifacts
 clean:

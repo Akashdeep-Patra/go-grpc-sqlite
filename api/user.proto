@@ -2,24 +2,85 @@ syntax = "proto3";
 
 package user;
 
+import "google/api/annotations.proto";
+import "protoc-gen-openapiv2/options/annotations.proto";
+
 option go_package = "test-project-grpc/user";
 
+option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
+  info: {
+    title: "User Service API";
+    version: "1.0";
+    description: "API for managing users";
+    contact: {
+      name: "Akashdeep Patra";
+      url: "https://github.com/Akashdeep-Patra";
+      email: "adeep8961@gmail.com";
+    };
+    license: {
+      name: "MIT";
+    };
+  };
+  schemes: HTTP;
+  schemes: HTTPS;
+  consumes: "application/json";
+  produces: "application/json";
+};
+
 service UserService {
-  rpc CreateUser (CreateUserRequest) returns (UserResponse);
-  rpc GetUser (GetUserRequest) returns (UserResponse);
+  rpc CreateUser (CreateUserRequest) returns (UserResponse) {
+    option (google.api.http) = {
+      post: "/v1/users"
+      body: "*"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Create a new user";
+      description: "Creates a new user with the provided name and email";
+      tags: "Users";
+    };
+  }
+  
+  rpc GetUser (GetUserRequest) returns (UserResponse) {
+    option (google.api.http) = {
+      get: "/v1/users/{id}"
+    };
+    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
+      summary: "Get a user";
+      description: "Returns a user by ID";
+      tags: "Users";
+    };
+  }
 }
 
 message CreateUserRequest {
-  string name = 1;
-  string email = 2;
+  string name = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "The user's name";
+    example: "\"John Doe\"";
+  }];
+  
+  string email = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "The user's email address";
+    example: "\"john.doe@example.com\"";
+  }];
 }
 
 message GetUserRequest {
-  string id = 1;
+  string id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "The user's ID";
+    example: "\"6ba7b810-9dad-11d1-80b4-00c04fd430c8\"";
+  }];
 }
 
 message UserResponse {
-  string id = 1;
-  string name = 2;
-  string email = 3;
+  string id = 1 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "The user's unique ID";
+  }];
+  
+  string name = 2 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "The user's name";
+  }];
+  
+  string email = 3 [(grpc.gateway.protoc_gen_openapiv2.options.openapiv2_field) = {
+    description: "The user's email address";
+  }];
 }

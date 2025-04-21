@@ -7,6 +7,8 @@
 package user
 
 import (
+	_ "github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2/options"
+	_ "google.golang.org/genproto/googleapis/api/annotations"
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
 	reflect "reflect"
@@ -181,20 +183,27 @@ var File_api_user_proto protoreflect.FileDescriptor
 
 const file_api_user_proto_rawDesc = "" +
 	"\n" +
-	"\x0eapi/user.proto\x12\x04user\"=\n" +
-	"\x11CreateUserRequest\x12\x12\n" +
-	"\x04name\x18\x01 \x01(\tR\x04name\x12\x14\n" +
-	"\x05email\x18\x02 \x01(\tR\x05email\" \n" +
-	"\x0eGetUserRequest\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\"H\n" +
-	"\fUserResponse\x12\x0e\n" +
-	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
-	"\x04name\x18\x02 \x01(\tR\x04name\x12\x14\n" +
-	"\x05email\x18\x03 \x01(\tR\x05email2}\n" +
-	"\vUserService\x129\n" +
+	"\x0eapi/user.proto\x12\x04user\x1a\x1cgoogle/api/annotations.proto\x1a.protoc-gen-openapiv2/options/annotations.proto\"\x96\x01\n" +
+	"\x11CreateUserRequest\x124\n" +
+	"\x04name\x18\x01 \x01(\tB \x92A\x1d2\x0fThe user's nameJ\n" +
+	"\"John Doe\"R\x04name\x12K\n" +
+	"\x05email\x18\x02 \x01(\tB5\x92A22\x18The user's email addressJ\x16\"john.doe@example.com\"R\x05email\"\\\n" +
+	"\x0eGetUserRequest\x12J\n" +
+	"\x02id\x18\x01 \x01(\tB:\x92A72\rThe user's IDJ&\"6ba7b810-9dad-11d1-80b4-00c04fd430c8\"R\x02id\"\x98\x01\n" +
+	"\fUserResponse\x12)\n" +
+	"\x02id\x18\x01 \x01(\tB\x19\x92A\x162\x14The user's unique IDR\x02id\x12(\n" +
+	"\x04name\x18\x02 \x01(\tB\x14\x92A\x112\x0fThe user's nameR\x04name\x123\n" +
+	"\x05email\x18\x03 \x01(\tB\x1d\x92A\x1a2\x18The user's email addressR\x05email2\xaa\x02\n" +
+	"\vUserService\x12\xa1\x01\n" +
 	"\n" +
-	"CreateUser\x12\x17.user.CreateUserRequest\x1a\x12.user.UserResponse\x123\n" +
-	"\aGetUser\x12\x14.user.GetUserRequest\x1a\x12.user.UserResponseB\x18Z\x16test-project-grpc/userb\x06proto3"
+	"CreateUser\x12\x17.user.CreateUserRequest\x1a\x12.user.UserResponse\"f\x92AO\n" +
+	"\x05Users\x12\x11Create a new user\x1a3Creates a new user with the provided name and email\x82\xd3\xe4\x93\x02\x0e:\x01*\"\t/v1/users\x12w\n" +
+	"\aGetUser\x12\x14.user.GetUserRequest\x1a\x12.user.UserResponse\"B\x92A)\n" +
+	"\x05Users\x12\n" +
+	"Get a user\x1a\x14Returns a user by ID\x82\xd3\xe4\x93\x02\x10\x12\x0e/v1/users/{id}B\xc9\x01\x92A\xad\x01\x12\x82\x01\n" +
+	"\x10User Service API\x12\x16API for managing users\"J\n" +
+	"\x0fAkashdeep Patra\x12\"https://github.com/Akashdeep-Patra\x1a\x13adeep8961@gmail.com*\x05\n" +
+	"\x03MIT2\x031.0*\x02\x01\x022\x10application/json:\x10application/jsonZ\x16test-project-grpc/userb\x06proto3"
 
 var (
 	file_api_user_proto_rawDescOnce sync.Once
